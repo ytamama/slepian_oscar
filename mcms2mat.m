@@ -48,16 +48,20 @@ function mcms2mat(yyyy,mm,dd,HH,MM,SS,qp,pdf,of,xls)
 % Tested on 8.3.0.532 (R2014a) and 9.0.0.341360 (R2016a)
 % Last modified by abrummen-at-princeton.edu, 07/14/2016
 % Last modified by fjsimons-at-alum.mit.edu, 02/22/2020
+% Last modified by Yuri Tamama, 3/24/2020
 
 % FIXED STUFF %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
 % Default data directory with the YYYY/MM/DD directories, set your own 'MC'
+setenv('MC0',getenv('MC0'))
 setenv('MC',getenv('MC'))
-dirx=getenv('MC');
+dirx=getenv('MC0');
+dirx2=getenv('MC');
 
 % Where are the response files kept?
 defval('icor',1)
-dirr='/u/fjsimons/IFILES/RESPONSES/PP/';
+setenv('RESP',getenv('RESP'))
+dirr=getenv('RESP'); 
 
 % Default directory where the EPS files will go, best to set your own 'EPS'
 setenv('EPS',getenv('EPS'))
@@ -109,6 +113,9 @@ defval('reply','y')
 % Detailed-level data directory where we should be looking for data
 dirx=fullfile(dirx,datestr(datenum(yyyy,mm,dd),'yyyy/mm/dd'));
 
+% Detailed-level data directory where we should store the data
+dirx2=fullfile(dirx2,datestr(datenum(yyyy,mm,dd),'yyyy/mm/dd'));
+
 % For all hours requested, or all hours available if none too specific
 for index=1:length(HH)
   % What does the calendar say in numeric date format?
@@ -117,7 +124,7 @@ for index=1:length(HH)
   dst1=datestr(dnum,'yyyymmdd_HHMMSS');
   dst2=datestr(dnum,'HHMMSS');
   % Make the MAT FILENAME that will collect ALL of the components
-  mtx=fullfile(dirx,sprintf(msfmt,'A',dst1,'mat'));
+  mtx=fullfile(dirx2,sprintf(msfmt,'A',dst1,'mat'));
   
   % Make a plot if requested, in the current figure window
   if qp==1
@@ -133,6 +140,7 @@ for index=1:length(HH)
     % Full figure name... but notice the trouble with periods in
     % the filenames, which is very annoying and gets fixed down below
     pdfname=sprintf('%spdf',pref(suf(msx,'/'),'miniseed'));
+    
     % Better test that the MINISEED exists as a filename
     if exist(msx,'file')==2
       % How about we convert this to SAC even temporarily
@@ -140,18 +148,20 @@ for index=1:length(HH)
       % Now to the SAC FILENAME that we expect to have been created
       sax=fullfile(pwd,sprintf(sacfmt,cmp{ondex},dst2));
       if exist(sax,'file')~=2
-	disp(sprintf('%s not found',sax)); 
+        disp(sprintf('%s not found',sax)); 
         % What did it create last? Start timing could have been updated
         % in the title. But note that 'last' means all other times are PAST
-	% If "future-timing" encountered, "touch" all the files before going in
-	d=dir(pwd); [ds,n]=sort([d(:).datenum]);
-	sax=d(n(length(n))).name;
-	% We most likely want to go along with the file that it did create
-	reply=input(sprintf('%s found, continue with that [Y/N] or skip? ',sax),'s');
-	if strcmp(lower(reply),'n'); continue; end
+        % If "future-timing" encountered, "touch" all the files before going in
+        d=dir(pwd); [ds,n]=sort([d(:).datenum]);
+        sax=d(n(length(n))).name;
+        % We most likely want to go along with the file that it did create
+        reply=input(sprintf('%s found, continue with that [Y/N] or skip? ',sax),'s');
+        if strcmp(lower(reply),'n'); 
+            continue; 
+        end
       end
 
-      if icor==1
+   if icor==1
 	% Make it smaller by cutting?
 
 	% Instrument response deconvolution? Header update in that case?
@@ -170,49 +180,53 @@ for index=1:length(HH)
 	sax='h.sac';
 
 	% Need to update the header! Also need to update readsac
-      else
-	freqlimits=nan(1,4);
-      end
+   else
+      freqlimits=nan(1,4);
+   end
 	 
       % If plotting, get ready
-      if qp==1; axes(ah(ondex)); end
+   if qp==1; 
+     axes(ah(ondex)); 
+   end
 
-      % Redefine sax again then READSAC and collect components
-      [s{ondex},h{ondex},t{ondex},p{ondex}]=readsac(sax,qp);
-      % If plotting, finish up with underscores in the title as needed
-      if qp==1
-	% Used for titles and plot names... watch the underscore... options
-	if verLessThan('matlab','8.4')
-	  mss=nounder(suf(msx,'/'),'\_');
-	else      
-	  mss=nounder(suf(msx,'/'),'\_');
-	end
-	set(t{ondex},'string',mss);
-	% Short version
-	if strfind(h{ondex}.IDEP,'DISPLACEMENT')~=0
-	  h{ondex}.IDEP='disp (nm)';
-	end
-	p{ondex}(3)=ylabel(sprintf('%s %s',cmp{ondex},h{ondex}.IDEP));
+    % Redefine sax again then READSAC and collect components
+    [s{ondex},h{ondex},t{ondex},p{ondex}]=readsac(sax,qp);
+    % If plotting, finish up with underscores in the title as needed
+    if qp==1
+        % Used for titles and plot names... watch the underscore... options
+        if verLessThan('matlab','8.4')
+          mss=nounder(suf(msx,'/'),'\_');
+        else      
+          mss=nounder(suf(msx,'/'),'\_');
+        end
+        set(t{ondex},'string',mss);
 	
-	% For the blasting...
-	defval('xls',[1800 1815])
-	xlim(xls)
+        % Short version
+        if strfind(h{ondex}.IDEP,'DISPLACEMENT')~=0
+           h{ondex}.IDEP='disp (nm)';
+        end
+        p{ondex}(3)=ylabel(sprintf('%s %s',cmp{ondex},h{ondex}.IDEP));
 	
-	if verLessThan('matlab','9.0.0')
-	else
-	  % After R2016a the behavior changed
-	  tlpos=t{ondex}.Position; 
-	  % Need to recenter the title after xls change
-	  t{ondex}.Position=tlpos+[-tlpos(1)+mean(xls) 0 0];
-	  t{ondex}.FontWeight='normal';
-	  t{ondex}.FontSize=8;
-	end
-      end
+        % For the blasting... set x-limits!
+        defval('xls',[1800 1815])
+        xlim(xls)
+	
+        if verLessThan('matlab','9.0.0')
+        else
+          % After R2016a the behavior changed
+          tlpos=t{ondex}.Position; 
+          % Need to recenter the title after xls change
+          t{ondex}.Position=tlpos+[-tlpos(1)+mean(xls) 0 0];
+          t{ondex}.FontWeight='normal';
+          t{ondex}.FontSize=8;
+        end
+    end
 
       % Remove the temporary SAC files
       system(sprintf('rm -f %s',sax));
       % Preserve the ability to make the plot
       nix=1;
+      
     else
       disp(sprintf('%s not created thus no further action',msx));
       % In that case you won't be making a plot either
@@ -236,7 +250,7 @@ for index=1:length(HH)
     atmp=figdisp(pdfname,[],[],~~pdf*2);
     % Better move that plot to the working directory, fix extension
     if pdf==1
-      system(sprintf('mv -f %s %s',fullfile(getenv('EPS'),pdfname),dirx));
+      system(sprintf('mv -f %s %s',fullfile(getenv('EPS'),pdfname),dirx2));
     end
   end
 
