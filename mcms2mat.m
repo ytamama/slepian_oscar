@@ -252,6 +252,11 @@ for index=1:length(HH)
     if pdf==1
       system(sprintf('mv -f %s %s',fullfile(getenv('EPS'),pdfname),dirx2));
     end
+    
+    %save an -eps version of my plot
+    dirx3=fullfile(dirx2,sprintf('%d%d%d_%d_%d%d',yyyy,mm,dd,HH,xls(1),xls(2)));
+    print('-depsc',dirx3);
+    
   end
 
   % If you've been having success
