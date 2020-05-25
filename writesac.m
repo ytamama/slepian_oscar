@@ -9,11 +9,11 @@ function fid=writesac(SeisData,HdrData,filename)
 %
 % OUTPUT:
 %
-% fid           The handle of the newly createdfile 
+% fid           The handle of the newly created file 
 %
 % See also: READSAC, MAKEHDR
 % 
-% Last modified by fjsimons-at-alum.mit.edu, 08/20/2018
+% Last modified by fjsimons-at-alum.mit.edu, 05/25/2020
 
 % Default filename
 defval('filename',[inputname(1),'.sac']);
@@ -53,13 +53,19 @@ HdrF(38)=HdrData.EVEL;
 HdrF(36)=HdrData.EVLA;
 HdrF(37)=HdrData.EVLO;
 HdrF(54)=HdrData.GCARC;
-HdrI(1)=HdrData.IFTYPE; % Required!
+try 
+  HdrI(1)=HdrData.IFTYPE;
+  HdrI(2)=HdrData.IDEP;
+catch
+  error('You cannot work with resolved categorical variables - see READSAC')
+  % Obviously, one could resubstitute the code for the name, see IVARS
+end
 HdrK(1,1:length(HdrData.KSTNM))=HdrData.KSTNM;
 HdrK(2,:)=HdrData.KEVNM(1:8);
 HdrK(3,1:length(HdrData.KEVNM(9:end)))=HdrData.KEVNM(9:end);
 HdrK(21,1:length(HdrData.KCMPNM))=HdrData.KCMPNM;
 HdrK(18,1:length(HdrData.KUSER0))=HdrData.KUSER0;
-HdrK(22,1:length(HdrData.KNETWK))=HdrData.KNWETWK;
+HdrK(22,1:length(HdrData.KNETWK))=HdrData.KNETWK;
 HdrK(24,1:length(HdrData.KINST))=HdrData.KINST;
 HdrL(4)=HdrData.LCALDA;
 HdrF(40)=HdrData.MAG;
